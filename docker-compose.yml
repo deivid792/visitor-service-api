@@ -24,7 +24,7 @@ services:
 
   mcp-server:
     build:
-      context: C:\Users\deivi\OneDrive\Desktop\VisitorService\MCPVisitorService\McpServer.VisitorService
+      context: C:\Users\deivi\OneDrive\Desktop\VisitorService\MCP\McpServer.VisitorService
       dockerfile: Dockerfile
     container_name: mcp-server-visitor
     ports:
@@ -34,7 +34,7 @@ services:
 
   mcp-client:
     build:
-      context: C:\Users\deivi\OneDrive\Desktop\VisitorService\MCPVisitorService\McpCliente.VisitorService
+      context: C:\Users\deivi\OneDrive\Desktop\VisitorService\MCP\McpCliente.VisitorService
       dockerfile: Dockerfile
     container_name: mcp-client-visitor
     ports:

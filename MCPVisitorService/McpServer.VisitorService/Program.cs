@@ -16,6 +16,8 @@ builder.Services.AddHttpClient("BackendApi", client =>
     client.BaseAddress = new Uri("http://localhost:5057/");
 });
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
 builder.Services
@@ -24,7 +26,9 @@ builder.Services
         mcp.ServerInfo = serverInfo;
     })
     .WithHttpTransport()
-    .WithTools<AuthRegisterTools>();
+    .WithTools<AuthRegisterTools>()
+    .WithTools<CreateVisitsTools>()
+    .WithTools<ManagerVisitsTools>();
 
 var app = builder.Build();
 

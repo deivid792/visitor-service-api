@@ -35,7 +35,7 @@ namespace VisitorService.Interfaces.Controllers
             _createVisitHandler = createVisitHandler;
         }
 
-        [Authorize(Roles = "Manager")]
+        [Authorize]
         [HttpPut("status")]
         public async Task<IActionResult> UpdateStatus([FromBody] UpdateVisitStatusCommand dto)
         {
@@ -88,7 +88,7 @@ namespace VisitorService.Interfaces.Controllers
             return Ok(result.Value);
         }
 
-        [Authorize(Roles = "Manager")]
+        [Authorize]
         [HttpGet("gestor")]
         public async Task<IActionResult> GetAll()
         {

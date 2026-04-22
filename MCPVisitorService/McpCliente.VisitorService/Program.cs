@@ -1,15 +1,28 @@
-﻿using Microsoft.Extensions.AI;
+﻿using System.ClientModel;
+using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using OpenAI;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-const string ollamaEndpoint = "http://localhost:11434";
-const string ModelName = "llama3.1:latest";
+const string groqApiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY");
 
-builder.Services.AddChatClient(new OllamaChatClient(new Uri(ollamaEndpoint), ModelName))
-    .UseFunctionInvocation();
+var openAIClient = new OpenAIClient(
+    new ApiKeyCredential(groqApiKey),
+    new OpenAIClientOptions { Endpoint = new Uri("https://api.groq.com/openai/v1") }
+);
+
+var chatClient = openAIClient.GetChatClient("llama-3.3-70b-versatile");
+
+IChatClient client = chatClient.AsIChatClient();
+
+builder.Services.AddChatClient(client)
+    .UseFunctionInvocation(configure: client =>
+    {
+        client.MaximumIterationsPerRequest = 1;
+    });
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -20,39 +33,52 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddScoped<ChatHistoryService>();
 
-builder.Services.AddSingleton<McpClient>(sp =>
+builder.Services.AddHttpClient("McpServerClient")
+    .AddHeaderPropagation();
+
+builder.Services.AddHeaderPropagation(options =>
 {
+    options.Headers.Add("Authorization");
+});
+
+builder.Services.AddScoped<McpClient>(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient("McpServerClient");
+
+    
     var transport = new HttpClientTransport(new HttpClientTransportOptions
     {
         Endpoint = new Uri("http://localhost:5000/sse"),
         TransportMode = HttpTransportMode.Sse
-    });
+    }, httpClient);
+
     return McpClient.CreateAsync(transport).GetAwaiter().GetResult();
 });
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(p =>
     p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
+string aiInstructions = await File.ReadAllTextAsync("ai-instructions.md");
+
 var app = builder.Build();
+app.UseHeaderPropagation();
 app.UseCors();
 
 
 app.MapPost("/chat", async (ChatRequest request, IChatClient chatClient, McpClient mcpClient, ChatHistoryService historyService) =>
 {
     string sessionId = request.UserId ?? "usuario_padrao";
+    var history = await historyService.GetHistoryAsync(sessionId);
 
-    var messages = await historyService.GetHistoryAsync(sessionId);
-
-    if (messages.Count == 0)
+    var messages = new List<ChatMessage>
     {
-        messages.Add(new ChatMessage(ChatRole.System, """
-            Você é um assistente de um Sistema de controle de acessos.
-            Seja direto e amigável.
-            Após usar uma ferramenta com sucesso, responda apenas confirmando a ação para o usuário,
-            sem descrever o processo técnico.
-            Ao cadastrar um usúario nunca fale repita os dados dele que voce cadastrou.
-            Apenas diga "Voce foi cadastrado com Sucesso :)"
-            """));
+        new ChatMessage(ChatRole.System, aiInstructions)
+    };
+
+    if (history != null)
+    {
+        messages.AddRange(history.Where(m => m.Role != ChatRole.System).TakeLast(6));
     }
 
     messages.Add(new ChatMessage(ChatRole.User, request.Prompt));

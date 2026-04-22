@@ -14,10 +14,14 @@ namespace VisitorService.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Visit>> GetAllAsync()
+        public async Task<IEnumerable<Visit>> GetPendingAndRecentAsync(int limit = 10)
         {
             return await _context.Visits
                 .Include(v => v.User)
+                .Where(v => v.Status == "Pending" || v.Status == "Pendente")
+                .OrderByDescending(v => v.Date)
+                .ThenByDescending(v => v.Time)
+                .Take(limit)
                 .AsNoTracking()
                 .ToListAsync();
         }

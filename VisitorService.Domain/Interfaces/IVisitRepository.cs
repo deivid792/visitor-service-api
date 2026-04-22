@@ -4,7 +4,7 @@ namespace VisitorService.Domain.Interfaces
 {
     public interface IVisitRepository
 {
-    Task<IEnumerable<Visit>> GetAllAsync();
+    Task<IEnumerable<Visit>> GetPendingAndRecentAsync(int limit);
     Task<Visit?> GetByIdAsync(Guid id);
     Task UpdateAsync(Visit visit);
     Task<bool> ExistsVisitInDateAndTime(DateOnly date, TimeOnly time);
