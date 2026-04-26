@@ -2,7 +2,7 @@ namespace VisitorService.Application.DTOS
 {
     public class VisitResponseDTO
     {
-        public Guid Id { get; set; }
+        public Guid VisitId { get; set; }
         public Guid UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public DateOnly Date { get; set; }

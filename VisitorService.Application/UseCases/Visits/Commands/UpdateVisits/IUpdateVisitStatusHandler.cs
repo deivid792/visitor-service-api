@@ -5,6 +5,6 @@ namespace VisitorService.Application.UseCases.Visits.Commands
 {
     public interface IUpdateVisitStatusHandler
     {
-        Task<Result<Visit>> Handle(UpdateVisitStatusCommand dto, Guid gestorId);
+        Task<Result<VisitUpdatedResponse>> Handle(UpdateVisitStatusCommand dto, Guid gestorId);
     };
 }

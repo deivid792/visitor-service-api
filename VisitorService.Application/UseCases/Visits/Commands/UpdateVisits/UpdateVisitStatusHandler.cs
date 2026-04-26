@@ -1,9 +1,8 @@
 using VisitorService.Application.Interfaces;
 using VisitorService.Application.Shared.results;
-using VisitorService.Domain.Entities;
 using VisitorService.Domain.Enums;
 using VisitorService.Domain.Interfaces;
-using VisitorService.Domain.ValueObjects;
+
 
 namespace VisitorService.Application.UseCases.Visits.Commands
 {
@@ -23,33 +22,41 @@ namespace VisitorService.Application.UseCases.Visits.Commands
         _emailService = emailService;
     }
 
-    public async Task<Result<Visit>> Handle(UpdateVisitStatusCommand dto, Guid managerId)
+    public async Task<Result<VisitUpdatedResponse>> Handle(UpdateVisitStatusCommand dto, Guid managerId)
     {
         var isManager = await _userRepository.IsUserInRoleAsync(managerId, RoleType.Manager);
 
         if (!isManager)
-            return Result<Visit>.Fail("Apenas gestores podem aprovar ou rejeitar visitas.");
+            return Result<VisitUpdatedResponse>.Fail("Apenas gestores podem aprovar ou rejeitar visitas.");
 
         var visit = await _visitRepository.GetByIdAsync(dto.VisitId);
 
         if (visit == null)
-            return Result<Visit>.Fail("Visita não encontrada.");
+            return Result<VisitUpdatedResponse>.Fail("Visita não encontrada.");
 
-        visit.UpdateStatus(dto.Status);
+        var statusCased = char.ToUpper(dto.Status[0]) + dto.Status.Substring(1).ToLower();
+        
+        visit.UpdateStatus(statusCased);
 
         if (visit.HasErrors)
-            return Result<Visit>.Fail(visit.Errors);
+            return Result<VisitUpdatedResponse>.Fail(visit.Errors);
 
         await _visitRepository.UpdateAsync(visit);
 
         await _emailService.SendAsync(
-            visit.User.Email.Value!,
+            "deividgoncalves.dev@gmail.com",
             "Atualização da sua visita",
-            $"Sua visita foi marcada como '{visit.Status}'."
+            $"<p>Sua visita foi marcada como <strong>{visit.Status}</strong>.</p>"
         );
 
-        return Result<Visit>.Success(visit);
-    }
+    var response = new VisitUpdatedResponse {
+        Id = visit.Id,
+        Status = visit.Status.ToString(),
+        VisitorName = visit.User?.Name?.Value ?? "Visitante"
+    };
+
+    return Result<VisitUpdatedResponse>.Success(response);
+}
 }
 
 }

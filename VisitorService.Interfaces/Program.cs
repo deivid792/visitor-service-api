@@ -1,9 +1,11 @@
+using System.ClientModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
+using OpenAI;
+using Resend;
 using Visitor.Cfg.Infrastructure.Cache;
 using VisitorService.aplication.Interface;
 using VisitorService.Application.Interfaces;
-using VisitorService.Application.Shared.Settings;
-using VisitorService.Application.UseCases;
 using VisitorService.Application.UseCases.Users.Commands;
 using VisitorService.Application.UseCases.Users.Commands.CreateManager;
 using VisitorService.Application.UseCases.Visits.Commands;
@@ -42,6 +44,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICacheService, MemoryCacheService>();
 builder.Services.AddTransient<IEmailService, EmailService>();
 
+
 // Handlers / Use Cases
 builder.Services.AddScoped<IcreateVisitHandler, CreateVisitHandler>();
 builder.Services.AddScoped<IGetAllVisitsHandler, GetAllVisitsHandler>();
@@ -54,15 +57,41 @@ builder.Services.AddScoped<IVisitCheckOutHandler, VisitCheckOutHandler>();
 builder.Services.AddScoped<ICreateManagerHandler, CreateManagerHandler>();
 
 // Email Settings
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("EmailSettings")
-);
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<IResend, ResendClient>();
+builder.Services.Configure<ResendClientOptions>( options =>
+{
+    options.ApiToken = builder.Configuration["ResendSettings:ApiToken"];
+} );
+builder.Services.AddTransient<IResend, ResendClient>();
 
 // JWT Auth
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
-// Cache
+//HeaderPropagation
+builder.Services.AddHeaderPropagation(options => { options.Headers.Add("Authorization"); });
+
+var groqApiKey = builder.Configuration["GroqApiKey"];
+
+// LLM Config
+var openAIClient = new OpenAIClient(new ApiKeyCredential(groqApiKey), new OpenAIClientOptions { Endpoint = new Uri("https://api.groq.com/openai/v1") });
+builder.Services.AddChatClient(openAIClient.GetChatClient("llama-3.3-70b-versatile").AsIChatClient())
+    .UseFunctionInvocation();
+
+builder.Services.AddChatClient(openAIClient.GetChatClient("llama-3.3-70b-versatile").AsIChatClient())
+    .UseFunctionInvocation(configure: options =>
+    {
+        options.MaximumIterationsPerRequest = 3;
+    });
+
+// Cache and History
 builder.Services.AddMemoryCache();
+builder.Services.AddStackExchangeRedisCache(o => { o.Configuration = "localhost:6379"; });
+builder.Services.AddScoped<ChatHistoryService>();
+builder.Services.AddScoped<ChatService>();
+
+// MCP
+builder.Services.AddMcpClient("http://localhost:5000/sse");
 
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -82,6 +111,9 @@ if (app.Environment.IsDevelopment())
 // Authentication
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Propagation
+app.UseHeaderPropagation();
 
 // Map Controllers
 app.MapControllers();

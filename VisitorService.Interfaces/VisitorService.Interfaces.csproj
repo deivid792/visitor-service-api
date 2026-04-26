@@ -15,7 +15,15 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" Version="9.0.2" />
   </ItemGroup>
+
+  <ItemGroup>
+  <None Update="ai-instructions.md">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\VisitorService.Application\VisitorService.Application.csproj" />

@@ -56,17 +56,19 @@ internal class ManagerVisitsTools
             return "Erro: Token de autorização não encontrado no repasse.";
         }
 
+        var statusFinal = status.Trim().ToLower().Contains("aprov") ? "Approved" : 
+        status.Trim().ToLower().Contains("rejeit") ? "Rejected" : status;
         try
         {
             var updateData = new { 
                 visitId = Guid.Parse(visitId), 
-                status = status 
+                status = statusFinal 
             };
 
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("Authorization", authorization);
 
-            var response = await client.PatchAsJsonAsync("http://localhost:5057/api/Visitor/status", updateData);
+            var response = await client.PutAsJsonAsync("http://localhost:5057/api/Visitor/status", updateData);
 
             if (response.IsSuccessStatusCode)
             {

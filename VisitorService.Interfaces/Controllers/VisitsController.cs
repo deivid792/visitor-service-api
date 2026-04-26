@@ -1,7 +1,6 @@
 using isitorService.Application.UseCases.Visits.Commands;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VisitorService.Application.DTOS;
 using VisitorService.Application.UseCases.Visits.Commands;
 using VisitorService.Application.UseCases.Visits.Queries;
 using VisitorService.Interfaces.Extensions;

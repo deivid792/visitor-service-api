@@ -19,7 +19,7 @@ namespace VisitorService.Application.UseCases.Visits.Queries
 
             var response = visits.Select(visit => new VisitResponseDTO
             {
-                Id = visit.Id,
+                VisitId = visit.Id,
                 UserId = visit.UserId,
                 UserName = visit.User?.Name?.ToString() ?? "Visitante Desconhecido",
                 Date = visit.Date,

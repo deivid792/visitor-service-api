@@ -1,37 +1,26 @@
-using MailKit.Net.Smtp;
-using MimeKit;
-using Microsoft.Extensions.Options;
-using VisitorService.Application.Shared.Settings;
 using VisitorService.Application.Interfaces;
+using Resend;
+using Microsoft.Extensions.Configuration;
 
 public class EmailService : IEmailService
 {
-    private readonly EmailSettings _settings;
+    private readonly IResend _resend;
 
-    public EmailService(IOptions<EmailSettings> settings)
+    public EmailService(IConfiguration config) 
     {
-        _settings = settings.Value;
+        var apiKey = config["ResendSettings:ApiToken"];
+        _resend = ResendClient.Create(apiKey);
     }
 
     public async Task SendAsync(string to, string subject, string body)
+{
+    var message = new EmailMessage
     {
-        var email = new MimeMessage();
-
-        email.From.Add(MailboxAddress.Parse(_settings.UserName));
-        email.To.Add(MailboxAddress.Parse(to));
-        email.Subject = subject;
-
-        email.Body = new TextPart("plain")
-        {
-            Text = body
-        };
-
-        using var smtp = new SmtpClient();
-
-        await smtp.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl);
-        await smtp.AuthenticateAsync(_settings.UserName, _settings.Password);
-
-        await smtp.SendAsync(email);
-        await smtp.DisconnectAsync(true);
-    }
+        From = "onboarding@resend.dev",
+        To = to,
+        Subject = subject,
+        HtmlBody = body
+    };
+    await _resend.EmailSendAsync(message);
+}
 }
